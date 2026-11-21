@@ -1,0 +1,11 @@
+
+demo    k  cands  attacks      ms  dual(table)      dual(fixed)   best attack
+LTL     1     16        1     1.0  agrees           -             σ=1.00  {Valid} {Secure,Valid} {Secure} {}  ->  {Valid} {Secure,Valid} {Secure} {Valid}
+CTL     1     19        4     0.2  DIFFERS (0 vs 4) agrees        σ=0.20  add transition idle->fault
+DEL     1      1        1     0.0  agrees           -             σ=0.50  announce an observable: worlds ['w1', 'w2'] -> ['w1']
+PCTL    1     21        4     1.2  DIFFERS (21 vs 4)agrees        σ=0.29  row 0: (0.5, 0.5, 0.0) -> (0.49, 0.5, 0.01)
+STL     1     48        3     0.5  agrees           -             σ=0.08  sample 6: 1.6 -> 0.85
+TM      1    210      204    25.0  -                -             σ=1.00  rule ('scan', '_') : ('carry', '_', 'L') -> ('scan', '0', 'L')
+CPU     2      6        1     0.1  -                -             σ=0.75  partitioned: True -> False, flush_on_switch: True -> False
+CPU     1      3        0     0.0  -                -             none
+Hoare   1      6        3    12.9  -                -             σ=0.50  if x <= balance:  =>  if x >= balance:

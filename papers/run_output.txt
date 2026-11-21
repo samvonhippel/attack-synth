@@ -1,0 +1,45 @@
+
+======================================================================
+oakley
+======================================================================
+Oakley et al. -- DTMC epsilon-ball attack synthesis
+  base model:  Pr(F<=20 delivered) = 0.9997   phi: PCTLBound(kind='F', label='delivered', bound=20, cmp='>=', p=0.95)
+  [SS  ] sampled    91 candidates in   36.5 ms  worst Pr=0.9197  max delta found=0.0800  robust at delta=0.02: False
+         worst-case perturbation: P[0][1]: 1.000->0.920, P[0][6]: 0.000->0.080
+  [ST  ] sampled    30 candidates in   10.7 ms  worst Pr=0.9997  max delta found=0.0000  robust at delta=0.02: True
+  [SPSS] sampled    47 candidates in   15.9 ms  worst Pr=0.9997  max delta found=0.0000  robust at delta=0.02: True
+  [SPST] sampled    24 candidates in    8.0 ms  worst Pr=0.9997  max delta found=0.0000  robust at delta=0.02: True
+
+======================================================================
+vonhippel
+======================================================================
+von Hippel et al. -- DAISY-replacement attacker synthesis
+  phi: every 'req' is followed by 'ack' within 3 actions
+  explored 13 trace extensions in 0.0 ms
+  violating run of P || DAISY(Q): ('req', 'timeout', 'nop', 'nop')
+  synthesized exists-attacker A (DAISY's choices projected onto Q's interface): ('timeout', 'nop', 'nop')
+  i.e. A always chooses 'timeout'/'nop' and never 'ack' -- a silent responder that never acknowledges.
+
+======================================================================
+bailluet
+======================================================================
+Bailluet et al. -- robust gadget-chain synthesis
+  gadgets available: ['pop rax; ret', 'mov rbx, rax; ret', 'mov [rbx], rax; ret', 'add rax, 1; ret', 'add rax, 64; ret']
+  goal: memory[12] == 0x41 (an arbitrary-write primitive), for all sampled values of the unpredictable byte
+  explored 87 chain states in 0.3 ms (budgeted search)
+  robust 4-gadget chain found: pop rax; ret ; mov rbx, rax; ret ; pop rax; ret ; mov [rbx], rax; ret
+  final state memory[12] = 0x41
+  (without the robustness/forall-u requirement: found=True, same chain exists non-robustly too: True)
+
+======================================================================
+wardega
+======================================================================
+Wardega et al. -- plan-deviation attack search (Algorithm 1)
+  grid 6x6, V_forbidden = [(4, 5), (5, 4), (5, 5)]
+  -- announcement horizon = 2 steps --
+     no undetected deviation reaches V_forbidden from any start time: horizon-limiting holds.
+  -- announcement horizon = 12 steps --
+     start t=8: undetected until u*=20; ATTACK found, 5 moves to (5, 4) (enters V_forbidden)
+     start t=9: undetected until u*=21; ATTACK found, 5 moves to (5, 4) (enters V_forbidden)
+     start t=10: undetected until u*=22; ATTACK found, 5 moves to (5, 4) (enters V_forbidden)
+     start t=11: undetected until u*=23; ATTACK found, 5 moves to (5, 4) (enters V_forbidden)

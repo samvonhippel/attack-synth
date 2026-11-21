@@ -1,0 +1,547 @@
+\documentclass[11pt]{amsart}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{pdflscape}
+\usepackage{hyperref}
+
+% ---------- Theorem-like environments ----------
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+% ---------- Macros ----------
+\newcommand{\logic}{L}
+\newcommand{\sat}{\models}
+\newcommand{\nsat}{\not\models}
+\newcommand{\adv}{\rightarrowtail}   % adversarial capability relation
+\newcommand{\dual}[1]{(#1)^{d}}
+\newcommand{\AP}{\mathit{AP}}
+\newcommand{\Edit}{\mathit{Edit}}
+\newcommand{\M}{\mathcal{M}}
+
+% Cell formatting for tables
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\lstdefinestyle{tamarin}{
+  basicstyle=\ttfamily\small,
+  frame=single,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+
+\title{A Formal Framework for Threat Models and Attacks Across Arbitrary Logics}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+%====================================================================
+\section{Base Logic}
+%====================================================================
+
+In this work, we introduce a formal framework for defining threat models and attacks across arbitrary
+logics $L = (M, \Phi, \models)$. By instantiating a threat model as a tuple $T = (m, \varphi, \adv)$, we establish a universal
+attack definition as any valid transformation $m \adv m'$ that breaks a nominal safety invariant ($m' \nsat \varphi$).
+From here, we introduce the notion of structural duality to transform properties ($\varphi$) and construct dual
+threat models $T^{d}$. Lastly, a weighted cut-off ratio $\sigma$ can be introduced to quantify the operational impact of
+a successful attack. % NOTE: the source PDF's extraction of this sentence was garbled around the symbol sigma; please check the intended symbol/subscript.
+It extends binary invariant violations into a measurable metric that evaluates how
+severely an attack degrades valid system execution.
+
+To begin this exploration, the definitions of a logic, threat model, and attack must first be flushed out.
+This provides the universal baseline required to analyze security violations across any system.
+
+\begin{definition}
+A \emph{logic} is a tuple, $L = (M, \Phi, \models)$, where\ldots
+\begin{itemize}
+  \item $M$ is a set of models, the things the logic talks about, e.g.\ processes in LTL or worlds in DEL;
+  \item $\Phi$ is a set of properties you're allowed to write down about the models;
+  \item $\models$ is a satisfaction relation, so that $m \models \varphi$ means $\varphi$ is true about $m$, for any $m \in M$ and $\varphi \in \Phi$.
+\end{itemize}
+Formally: $\models\ \subseteq M \times \Phi$.
+\end{definition}
+
+\begin{definition}
+A \emph{threat model} in a logic $L = (M, \Phi, \models)$ is a tuple $(m, \varphi, \adv)$ where\ldots
+\begin{itemize}
+  \item $m \in M$ is the baseline model, representing the uncompromised system;
+  \item $\varphi \in \Phi$ is a safety invariant satisfied by $m$, i.e., $(m \models \varphi)$;
+  \item $\adv\ \subseteq M \times M$ is an adversarial capability relation, where $m \adv m'$ denotes that the adversary can
+  change model $m$ to model $m'$. We do not assume that $\adv$ is associative, since this would rule out
+  notions of bounded capability.
+\end{itemize}
+\end{definition}
+
+\begin{definition}
+Given a logic $L = (M, \Phi, \models)$ and a corresponding threat model $T = (m, \varphi, \adv)$, an \emph{attack} is a modified
+model $m' \in M$ where $m \adv m'$, such that $m'$ violates $\varphi$. Formally:
+\[
+  (m \adv m') \wedge (m' \nsat \varphi).
+\]
+\end{definition}
+
+\begin{remark}
+This logic could also instead be expressed in Hoare Logic where the threat model is a tuple $(p, \varphi, \Edit)$
+where\ldots
+\begin{itemize}
+  \item $p \in P$ is the program, representing the uncompromised source code;
+  \item $\varphi \in \Phi$ is a safety invariant satisfied by $p$, i.e., $(p \models \varphi)$;
+  \item $\Edit \subseteq P \times P$ is an edit relation, where $p' \in \Edit(p)$ denotes that the adversary can edit
+  program $p$ into modified program $p'$.
+\end{itemize}
+\end{remark}
+
+\begin{remark}
+Philosophically, the above Hoare Logic framework shares a great deal of structure with O'Hearne's work,
+as both utilize under-approximate reasoning to establish the presence of specification violations. Despite
+this, the underlying mechanics of the above and O'Hearne's work differ:
+\begin{itemize}
+  \item Incorrectness Logic proves error reachability over runtime execution traces ($[P]\ C\ [Q]$), whereas
+  the above logic proves specification violations over program transformations ($\Edit \subseteq P \times P$).
+  \item Incorrectness Logic targets a single static program but the above framework targets a family of
+  modified program variants generated via code transformation ($\{p\}\ \Edit\ \{p'\}$).
+  \item Incorrectness Logic defines a strict statement-level proof system with fixed inference rules for
+  imperative execution, while the above framework operates at a far more theoretic level, utilizing
+  syntax tree mapping to allow for any logical structure.
+\end{itemize}
+These two frameworks have a lot in common syntactically, but differ fundamentally in function.
+\end{remark}
+
+\begin{example}[Defining a Logic for Several Popular Models]
+\label{ex:logics}
+\end{example}
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{L{2.2cm} L{2.4cm} L{3.3cm} L{2.8cm} L{4.0cm}}
+\toprule
+\textbf{Logic} & \textbf{Models} $(M)$ & \textbf{Properties} $(\Phi)$ / Formulas built from/bound by: & \textbf{Satisfaction Relation} $(\models)$ & \textbf{Threat Model Tuple} $T = (m, \varphi, \adv)$ \\
+\midrule
+\endhead
+Linear Temporal Logic (LTL) & Set of execution traces & atomic propositions and operators $(G, F, X, U)$ & trace $w$ satisfies temporal formula $\varphi$ &
+$m$: execution trace system\newline $\varphi$: LTL temporal safety property\newline $\adv$: trace operator \\
+\addlinespace
+Computation Tree Logic (CTL) & Set of Kripke structures & path quantifiers $(A, E)$ and linear operators $(X, F, G, U)$ & state $s_0$ in $S$ satisfies formula $\varphi$ &
+$m$: Kripke structure\newline $\varphi$: branching-time path property $(AG, EF, AX, \text{etc.})$\newline $\adv$: Transition edge or state-labeling mutation \\
+\addlinespace
+Dynamic Epistemic Logic (DEL) & Set of pointed epistemic Kripke models & epistemic modalities $(K_a \varphi)$ and action updates & world $w$ in model $\mathfrak{M}$ satisfies $\varphi$ &
+$m$: pointed epistemic Kripke model\newline $\varphi$: epistemic or announcement property $([\alpha]\psi,\ K_a \psi)$\newline $\adv$: Action model or announcement update modification \\
+\addlinespace
+Probabilistic LTL (PCTL) & Set of DTMCs or MDPs & threshold operators $(\mathbb{P}_{\geq \mathbf{p}}(\varphi))$ & probability of satisfying path property $\varphi$ meets bound $\mathbf{p}$ &
+$m$: Markov Chain\newline $\varphi$: probabilistic bound formula $(\mathbb{P}_{\bowtie \mathbf{p}}(\psi))$\newline $\adv$: Probability weight perturbation operator \\
+\addlinespace
+Signal Temporal Logic (STL) & Set of continuous time signals & dense-time temporal operators $(G_{[a,b]})$ & signal trajectory $s$ satisfies metric property $\varphi$ at time $t$ &
+$m$: continuous-time signal trajectory\newline $\varphi$: temporal logic property $(G_{[a,b]},\ F_{[a,b]})$\newline $\adv$: Continuous signal amplitude \\
+\addlinespace
+Turing Machine & set of execution traces & Safety properties $(\varsigma)$ & trace $w$ satisfies safety property $\varphi$ &
+$m$: execution trace system\newline $\varphi$: safety property\newline $\adv$: transition rule mutation \\
+\addlinespace
+Micro-architectural Side-Channel Attacks on CPU & set of microarchitectural transition systems & security properties specifying non-interference or timing indistinguishability & processor model $m$ securely isolates secrets $\varphi$ &
+$m$: a secure CPU model\newline $\varphi$: security property\newline $\adv$: adversarial microarchitectural change \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+%====================================================================
+\section{Duality}
+%====================================================================
+
+A common theme in many logics is that some properties are stronger than others. This can be formalized
+in many ways, for example, in a logic over program traces, a stronger property is one that holds in a
+smaller number of traces (it is stronger in the sense that it is more precise). Often, a logic will be
+expressed using variables, models, and quantifiers, of some kind. In such cases, it is common for one
+quantifier to be the dual of another. More precisely, if we have quantifiers $J$ and $K$, we say they are duals
+if $J = \neg K \neg$, (e.g.\ $\forall = \neg \exists \neg$). In this next section, we discuss how this dual relationship
+matters for attacks---it often captures ideas around the strength of an attack, such as if it always works or
+sometimes works, and in different logical languages can take different forms, as captured in Example~2.1.
+We generalize the concept, mathematically, over arbitrary logics, and then we use our generalization to
+instantiate what it means for several interesting logics to show its usefulness.
+
+\begin{remark}
+By the definition of a dual, one might assume that a dual is either particular to a logical language or that
+multiple sets of duals cannot exist within the same logical language. Neither is true, for example in First
+Order Logic (FOL), you have both the duals ``and'' and ``or'' and also ``for every'' and ``there exists''; both
+sets exist within the same framework, and both sets are common to many logical languages.
+\end{remark}
+
+\begin{definition}
+Let $\Phi$ be the set of full formulas generated inductively over atomic variables $\AP$ and operators $\Omega$. The
+\emph{structural (De Morgan) dual} $(\cdot)^{d} : \Phi \to \Phi$ is defined over the primary constructor encountered at the root
+of a formula's abstract syntax tree, satisfying $\big((\varphi)^{d}\big)^{d} = \varphi$:
+\begin{itemize}
+  \item Literals: $(\mathsf{p})^{d} = \neg \mathsf{p}$ and $(\neg \mathsf{p})^{d} = \mathsf{p}$
+  \item Compound Formulas: $\big(\omega(\psi_1, \ldots, \psi_n)\big)^{d} = \neg\big(\omega(\neg\psi_1, \ldots, \neg\psi_n)\big)$
+\end{itemize}
+\end{definition}
+
+\begin{definition}
+A \emph{dual threat model} replaces the target property $\varphi$ with its structurally transformed dual formula $(\varphi)^{d}$,
+preserving the baseline model $m$ and capability relation $\adv$:
+\[
+  T^{d} = \big(m, (\varphi)^{d}, \adv\big).
+\]
+\end{definition}
+
+\begin{definition}
+Given a dual threat model $T^{d} = (m, (\varphi)^{d}, \adv)$ and the candidate space $C(m) = \{m' \in M \mid m \adv m'\}$, a
+\emph{realized dual attack} occurs when a transitioned model $m' \in C(m)$ satisfies the dual formula:
+\[
+  m' \models (\varphi)^{d}.
+\]
+\end{definition}
+
+\begin{example}[Languages and Their Duals]
+\label{ex:duals}
+\end{example}
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.4}
+\begin{longtable}{L{1.8cm} L{2.6cm} L{3.4cm} L{3.4cm} L{3.4cm}}
+\toprule
+\textbf{Logic} & \textbf{Duals} & \textbf{Safety Specification} $(\varphi)$ Examples & \textbf{Dual Adversarial Goal} $(\varphi)^{d}$ Examples & \textbf{Impact Examples} \\
+\midrule
+\endhead
+LTL &
+$(G, F)$\newline $(\wedge, \vee)$\newline $(\Rightarrow, \wedge)$ &
+$G(\mathit{Valid} \Rightarrow F\,\mathit{Secure})$ &
+$F(\mathit{Valid} \wedge G\neg \mathit{Secure})$ &
+Transforms a safety invariant into a trace where safety degrades. \\
+\addlinespace
+CTL &
+$(A, E)$\newline $(G, F)$ &
+$AG(\mathit{State} = \mathit{Normal})$ &
+$AG(\mathit{State} \neq \mathit{Normal})$ &
+demonstrates the existence of at least one reachable compromised branch \\
+\addlinespace
+DEL &
+$([\alpha], \langle\alpha\rangle)$\newline $(K_a, \hat{K}_a)$\newline $(\wedge, \vee)$ &
+$[\mathit{Read}]\,\mathit{SecretSafe}$ &
+$\langle \mathit{Read} \rangle \neg \mathit{SecretSafe}$ &
+proves an execution path exists where the adversary successfully gains unauthorized information. \\
+\addlinespace
+PCTL &
+$(G, F)$\newline $(\geq, <)$\newline $(>, \leq)$ &
+$\mathbb{P}_{\geq 0.99}(G\,\mathit{StateOK})$ &
+$\mathbb{P}_{<0.99}(F\,\mathit{StateFail})$ &
+Converts a reliable bound into a likelihood that an adversary can trigger a failure. \\
+\addlinespace
+STL &
+$(G, F)$\newline $(\geq, <)$\newline $(>, \leq)$ &
+$G_{[0,\mathsf{T}]}(x(t) \geq \mathit{Threshold})$ &
+$F_{[0,\mathsf{T}]}(x(t) < \mathit{Threshold})$ &
+Injects an adversarial change breaking continuous signal safety at a specific moment in time. \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+%====================================================================
+\section{Tamarin}
+%====================================================================
+
+To enable the use of a wide variety of formal verification tools, one can actually transfer the logics or
+modalities that these tools work under directly into Hoare-style triples. Rather than viewing verification
+tools as isolated external engines, our framework lifts their state-transition mechanics directly into our
+deductive Hoare logic structure. For example,
+
+\begin{example}[LTL to Tamarin to Hoare Logic]
+\label{ex:tamarin}
+Within Tamarin we have pretty clear equivalencies on how the Tamarin Framework can become
+Hoare-logic triples.
+\begin{itemize}
+  \item Preconditions and States ($P$): Program variables are represented as multisets of active facts
+  \item adversarial capability relations ($\adv$): An adversarial program mutation is mapped to a rewrite rule
+  consuming pre-state facts and producing post-state facts.
+  \item Invariant violations ($p' \nsat \varphi$): Postcondition violations are evaluated as trace properties (lemma)
+\end{itemize}
+
+Using an example LTL formula:
+\[
+  \{\mathit{balance} \geq 0\}\ \mathtt{if}\ (x \leq \mathit{balance})\ \mathtt{then}\ \mathit{balance} := \mathit{balance} - x\ \mathtt{else}\ \mathtt{skip}\ \{\mathit{balance} \geq 0\}
+\]
+we can generate the Tamarin file:
+
+\begin{lstlisting}[style=tamarin]
+theory AccountMutation
+begin
+
+builtins: multiset
+functions: minus/2
+
+// 1. Initial State Rule
+rule Init_Account:
+  [ In(~initial_balance) ]
+  --[ Setup(~initial_balance) ]->
+  [ Balance(~initial_balance) ]
+
+// 2. Adversarial Program Mutation Rule (Edit)
+rule Malicious_Withdraw_Edit:
+  [ Balance(bal), In(x) ]
+  --[ StateTransition(bal, x) ]->
+  [ Balance(minus(bal, x)) ]
+
+// 3. Safety Invariant Trace Lemma
+// Note: Tamarin parses formulas using standard logical connectives (=, not, &, |, ==>)
+lemma safety_invariant_non_negative:
+  " All bal x #i. StateTransition(bal, x) @ i ==> not (bal = x) "
+
+end
+\end{lstlisting}
+
+Running this through Tamarin results in our valid attack, successfully breaking our security property:
+
+\begin{lstlisting}[style=tamarin]
+theory AccountMutation begin
+
+Message theory
+Multiset rewriting rules (4)
+Tactic(s)
+Raw sources (5 cases, deconstructions complete)
+Refined sources (5 cases, deconstructions complete)
+
+add lemma
+lemma safety_invariant_non_negative:
+  all-traces
+  "forall bal x #i.
+    (StateTransition( bal, x ) @ #i) ==> (not(bal = x))"
+edit lemma or delete lemma
+by sorry
+add lemma
+
+end
+\end{lstlisting}
+
+This corresponds to our Edit relation:
+\[
+  \{\mathit{balance} \geq 0\}\ \Edit\ \{\mathit{balance} < 0\}
+\]
+Which is inherently what we got earlier from our LTL formula when making the transfer directly into our
+logical system.
+\end{example}
+
+\begin{example}[Model Checkers and Their Use Within the Overall Framework]
+\label{ex:checkers}
+Each row is derived from the tool's own documentation or paper (cited in the first column), not from
+the framework. The last column states how the tool instantiates $(M, \Phi, \models)$ and the adversarial
+capability relation $\adv$. Where a tool has no adversary of its own, the capability relation must be supplied
+by the user as part of the model.
+\end{example}
+
+\begin{landscape}
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{L{1.7cm} L{4.0cm} L{3.5cm} L{4.2cm} L{4.4cm} L{3.6cm}}
+\toprule
+\textbf{Tool} & \textbf{Models} $(M)$ & \textbf{Properties} $(\Phi)$ & \textbf{Adversary} & \textbf{Analysis} & \textbf{Instantiation of $T = (m, \varphi, \adv)$} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Tool} & \textbf{Models} $(M)$ & \textbf{Properties} $(\Phi)$ & \textbf{Adversary} & \textbf{Analysis} & \textbf{Instantiation of $T = (m, \varphi, \adv)$} \\
+\midrule
+\endhead
+Tamarin \cite{tamarin} &
+Protocols are multiset rewriting rules defining a labeled transition system whose state includes a symbolic
+representation of the adversary's knowledge, network messages, fresh values, and protocol state. &
+Trace properties (first-order formulas over timestamped action facts), and observational equivalence of two
+transition systems. &
+Written in the same rule language: adversaries are also multiset rewriting rules, with the standard
+instantiation being Dolev--Yao message deduction. &
+Constraint solving: an exhaustive symbolic search for a trace satisfying the negation of the property. A
+property is valid if no satisfying trace exists. &
+$m$: rule set; $\varphi$: lemma; $\adv$: adding or changing a rewrite rule; attack: a trace of the edited rule set violating the lemma. \\
+\addlinespace
+SPIN \cite{spin} &
+Promela processes and channels (rendezvous or buffered); execution interleaves enabled statements. &
+Assertions, invalid end states, progress and acceptance labels, and never claims for general linear-time
+properties (LTL). &
+None built in. Nondeterministic scheduling explores all interleavings, and an environment is modeled as
+ordinary processes. &
+Exhaustive depth-first search over reachable states with partial order reduction; bitstate hashing for large
+models, which can miss errors but never reports false ones. &
+$m$: process composition; $\adv$: replacing or adding a process, as in the attacker synthesis of \cite{vonhippel}. \\
+\addlinespace
+ProVerif \cite{proverif} &
+Protocols in a dialect of the applied $\pi$-calculus, with cryptographic primitives given as constructors and
+destructors (rewrite rules). &
+Secrecy (as reachability of the attacker-knowledge predicate), correspondence assertions, and
+diff-equivalence. &
+Symbolic Dolev--Yao attacker with perfect cryptography. It is not a separate component: it is encoded as Horn
+clauses over the predicate $\mathit{att}(M)$. &
+Resolution with free selection over Horn clauses, which abstracts away protocol-level constraints to handle
+unboundedly many sessions. It may not terminate and is incomplete (false attacks). &
+$m$: process; $\varphi$: query; $\adv$: fixed by the tool (Dolev--Yao); attack: a derivable fact that violates the query. \\
+\addlinespace
+nuXmv \cite{nuxmv} &
+Finite- and infinite-state synchronous transition systems, with Integer, Real, and uninterpreted-function
+types for the infinite case. &
+Invariants, and LTL and CTL properties inherited from NuSMV. &
+None built in. &
+Finite-state: SAT-based algorithms, interpolation-based invariant checking, IC3, $k$-liveness. Infinite-state:
+SMT-based BMC, $k$-induction, interpolation, IC3, and CEGAR abstraction. &
+$m$: transition system; $\adv$: mutation of the transition relation or of variable assignments, supplied by the user. \\
+\addlinespace
+PRISM \cite{prism} &
+DTMCs, CTMCs, MDPs, and PTAs, each optionally augmented with rewards. &
+PCTL (DTMC, MDP), CSL (CTMC), LTL, PCTL*, quantitative queries ($P{=}?$), and reward operators. &
+None built in. Nondeterminism in MDPs is resolved by minimizing or maximizing probabilities. &
+Matrix--vector multiplication, linear equation solving, Prob0/Prob1 precomputation, iterative solvers, value
+iteration, and BDD/MTBDD symbolic storage. &
+$m$: DTMC; $\adv$: perturbing the transition matrix, as in \cite{oakley}, which uses PRISM as the inner probability engine. \\
+\addlinespace
+HyTech \cite{hytech} &
+Collections of hybrid automata composed as a product: nodes carry invariants and differential inclusions,
+transitions carry guards, resets, and synchronization labels. Linear dynamics: stopwatches, skewed clocks,
+bounded rates. &
+Temporal requirements stated as state-set reachability queries; the logic is not named in the paper. &
+None built in. &
+Symbolic model checking over polyhedra. Termination is not guaranteed. Also parametric analysis and
+diagnostic error traces. &
+$m$: hybrid automaton; $\adv$: edits to rates, guards, and resets, supplied by the user. \\
+\bottomrule
+\end{longtable}
+\endgroup
+\end{landscape}
+
+%====================================================================
+\section{Measure Theory Extension}
+%====================================================================
+
+\begin{definition}
+A \emph{probability measure space} is a triple $(\M, \Sigma, \mu)$ where:
+\begin{itemize}
+  \item $\M$ is a non-empty set of models;
+  \item $\Sigma \subseteq \mathcal{P}(\M)$ is a $\sigma$-algebra over $\M$ containing $\M$ and closed under complementation and countable
+  unions;
+  \item $\mu : \Sigma \to [0, 1]$ is a probability measure satisfying $\mu(\emptyset) = 0$, $\mu(\M) = 1$, and countable additivity
+  for any sequence of pairwise disjoint sets $(M_i)_{i=0}^{\infty} \subset \Sigma$.
+\end{itemize}
+\end{definition}
+
+\begin{definition}
+Let $\M$ be the set of models for the logic, equipped with a probability measure space $(\M, \Sigma, \mu)$
+normalized such that $\mu(\M) = 1$. Each subset of models $M \in \Sigma$ is assigned a probability mass $\mu(M)$
+representing its relative execution share, frequency, or occurrence weight.
+\end{definition}
+
+\begin{definition}
+The \emph{severity} of an attack is quantified by the weighted model cut-off ratio $\sigma \in [0, 1]$, defined as the
+proportional loss of measure between the model set $M$ and the attacked model set $M'$:
+\[
+  \sigma = 1 - \frac{\mu(M')}{\mu(M)}.
+\]
+\begin{itemize}
+  \item $\sigma = 0$: Nominal operation
+  \item $0 < \sigma < 1$: Some Branches are severed, but the program remains executable
+  \item $\sigma = 1$: System is fully compromised
+\end{itemize}
+\end{definition}
+
+%====================================================================
+\section{Comparisons}
+%====================================================================
+
+\begin{example}[Comparison to Other Attack Synthesis Frameworks]
+\label{ex:comparison}
+Each column is derived from the cited paper's own definitions (section and definition numbers are given
+where the paper provides them). Where a paper does not define a component, the cell says so. Entries
+marked ``(our encoding)'' are not stated in the paper but follow from its definitions.
+\end{example}
+
+\begin{landscape}
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{L{3.0cm} L{4.6cm} L{4.6cm} L{4.6cm} L{4.6cm}}
+\toprule
+\textbf{Component} & \textbf{Oakley et al.\ \cite{oakley}} & \textbf{von Hippel et al.\ \cite{vonhippel}} & \textbf{Bailluet et al.\ \cite{bailluet}} & \textbf{Wardega et al.\ \cite{wardega}} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Component} & \textbf{Oakley et al.\ \cite{oakley}} & \textbf{von Hippel et al.\ \cite{vonhippel}} & \textbf{Bailluet et al.\ \cite{bailluet}} & \textbf{Wardega et al.\ \cite{wardega}} \\
+\midrule
+\endhead
+Logic $L = (M, \Phi, \models)$ &
+PCTL* over DTMCs. MDPs are covered under a deterministic memoryless policy, which induces a DTMC. &
+LTL over processes. $\mathsf{P} \models \varphi$ means every computation of $\mathsf{P}$ satisfies $\varphi$. &
+Quantifier-free formulas over bit-vectors and arrays (QF\_ABV) describing machine states and gadget transitions. &
+No logic is defined; satisfaction is given by the paper's definitions of plans, deviations, and detection (Defs.~1--6). The paper does not use an epistemic logic. \\
+\addlinespace
+Model $m \in M$ &
+DTMC $C = (S, s_0, \mathbf{P}, \mathit{AP}, L)$. &
+Composition $\mathsf{P} \parallel Q_0 \parallel \dots \parallel Q_n$ of Kripke-structure processes with inputs and outputs, composed asynchronously with rendezvous. &
+Initial machine state $s_0 = \langle \mathbf{p}, \mathbf{u} \rangle$ (registers and byte memory), split into attacker-predictable $\mathbf{p}$ and unpredictable $\mathbf{u}$, together with a library of gadgets. &
+A graph $G = (V, E)$ of locations, robots $R$, a MAPF plan $x$, and the prefix $\alpha(t)$ of $x$ announced by the central entity at time $t$. \\
+\addlinespace
+Safety invariant $\varphi \in \Phi$ &
+$\mathbb{P}_{\geq \mathbf{p} - \delta}(\psi)$, where $\psi$ is a PCTL* path formula and $\mathbf{p} = \Pr_C(\psi)$ (robustness, Def.~6). &
+An LTL property $\varphi$ with $\mathsf{P} \parallel Q_0 \parallel \dots \parallel Q_n \models \varphi$ before the attack. &
+Not an invariant in the paper; (our encoding) $\varphi_n = \neg\, GS_n$: no chain of $n$ gadgets robustly reaches the goal specification $S$ from assumptions $A$. &
+Horizon-limiting announcements (Def.~6): for every forbidden deviation, some continuation of $\alpha(t)$ makes the reports differ, so the attacker cannot be certain of going undetected. \\
+\addlinespace
+Adversarial capability relation $\adv\ \subseteq M \times M$ &
+$C \adv C'$ iff $C'$ has the same $S$, $s_0$, $L$ and a matrix $\mathbf{P}'$ with $\|\mathbf{P} - \mathbf{P}'\|_{\max} \leq \varepsilon$, changing only selected states (SS) or selected transitions (ST). The structure-preserving variants keep zero entries zero. &
+$\mathsf{P} \parallel Q \adv \mathsf{P} \parallel A$, where each $Q_i$ is replaced by a deterministic $A_i$ with the same interface and no atomic propositions. The recovery variant uses a finite DAG that ends in $Q_i$. &
+The attacker rewrites the code pointer and places controlled data in memory, then moves between states only through gadget transitions $g(s, s') = g_{\mathit{pre}}(s) \wedge g_{\mathit{post}}(s, s')$. NX is assumed on and CFI off. &
+A compromised robot $i$ changes only its own positions on an interval $(s, f)$ and falsifies its self-reports (Def.~3). It knows $\alpha(t)$ but not which other robots are compromised. \\
+\addlinespace
+Attack $(m \adv m') \wedge (m' \nsat \varphi)$ &
+A perturbation $C'$ with $\Pr_{C'}(\psi) < \Pr_C(\psi) - \delta$. &
+An attacker $A$ with $\mathsf{P} \parallel A \nsat \varphi$ (an $\exists$-attacker if it succeeds on some runs). &
+An assignment to $\mathbf{p}$ and a chain of $n$ gadgets for which $S$ holds, for all values of $\mathbf{u}$ (Def.~1, robust $n$-gadget satisfiability). &
+A deviation that enters $V_{\mathit{forbidden}}$ (Def.~4) while the central entity receives exactly the expected reports. \\
+\addlinespace
+Attacker goal $m' \models (\varphi)^d$ &
+Worst-case attack: the $C'$ maximizing $\Pr_C(\psi) - \Pr_{C'}(\psi)$, i.e.\ $C' \models \mathbb{P}_{< \mathbf{p} - \delta}(\psi)$. &
+A $\forall$-attacker: $\mathsf{P} \parallel A \models \neg\varphi$, so every behavior violates $\varphi$. &
+The specification $S$ itself: $S(s_n)$ holds after $n$ gadgets. &
+Stealthy attacker: a forbidden undetected deviation exists for every continuation of $\alpha(t)$, which is the negation of the horizon-limiting property. A bold attacker tries without that guarantee. \\
+\addlinespace
+Verifier &
+Optimization with SLSQP over PRISM, or with PARAM for a closed-form parametric solution. &
+Reduction to model checking: check $\mathsf{P} \parallel \mathrm{DAISY}(Q_0) \parallel \dots$ against $\varphi$ with SPIN, then project the counterexample onto each $Q_i$ (tool: KORG). Sound and complete for $\exists$ attackers. &
+One SMT query over bit-vectors and arrays with the Boolector solver, using a taint encoding to eliminate $\forall \mathbf{u}$; chains are searched by increasing length, with gadget sampling for scale. &
+Algorithm~1, a non-deterministic co-observation enumeration: sound but incomplete, with cost $O(|R||V|)$, checked per robot. \\
+\addlinespace
+Severity / impact (cut-off ratio $\sigma$) &
+Not defined as a ratio; the paper maximizes the probability drop $\Pr_C(\psi) - \Pr_{C'}(\psi)$. &
+Not defined; attackers are classified as $\exists$ versus $\forall$, with or without recovery. &
+Not defined; the chain either exists or not, and solving time is reported. &
+Not defined as a ratio; the paper reports the share of scenarios verified secure, bold-attack success and miss rates, and lookahead. \\
+\bottomrule
+\end{longtable}
+\endgroup
+\end{landscape}
+
+\begin{thebibliography}{9}
+\bibitem{oakley} L.\ Oakley, A.\ Oprea, S.\ Tripakis. \emph{Adversarial Robustness Verification and Attack Synthesis in Stochastic Systems}. arXiv:2110.02125.
+\bibitem{vonhippel} M.\ von Hippel, C.\ Vick, S.\ Tripakis, C.\ Nita-Rotaru. \emph{Automated Attacker Synthesis for Distributed Protocols}. arXiv:2004.01220.
+\bibitem{bailluet} N.\ Bailluet, E.\ Fleury, I.\ Puaut, E.\ Rohou. \emph{Nothing is Unreachable: Automated Synthesis of Robust Code-Reuse Gadget Chains for Arbitrary Exploitation Primitives}. USENIX Security Symposium, 2025.
+\bibitem{wardega} K.\ Wardega et al. \emph{HoLA Robots: Mitigating Plan-Deviation Attacks in Multi-Robot Systems with Co-Observations and Horizon-Limiting Announcements}. AAMAS 2023; arXiv:2301.10704.
+\bibitem{tamarin} The Tamarin Prover Manual. \url{https://tamarin-prover.com/manual/master/book/001_introduction.html}.
+\bibitem{spin} The Spin model checker: Promela quick reference. \url{https://web.mit.edu/spin_v6.4.7/Doc/Quick.html}.
+\bibitem{proverif} B.\ Blanchet. \emph{The Security Protocol Verifier ProVerif and its Horn Clause Resolution Algorithm}. arXiv:2211.12227.
+\bibitem{nuxmv} The nuXmv model checker. \url{https://nuxmv.fbk.eu/} (features page), and the CAV 2014 tool paper.
+\bibitem{prism} The PRISM model checker: model types and properties. \url{https://prismmodelchecker.org/doc/whatsinprism.php}.
+\bibitem{hytech} T.\ A.\ Henzinger, P.-H.\ Ho, H.\ Wong-Toi. \emph{HyTech: A Model Checker for Hybrid Systems}. CAV 1997.
+\end{thebibliography}
+
+\end{document}

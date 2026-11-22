@@ -171,6 +171,41 @@ class TestSeverity(unittest.TestCase):
         synth = make_attack_synth(lambda m, _phi: m == "a", mt, lambda a, b: True, measure=mu)
         self.assertAlmostEqual(synth.sigma("a", "b"), severity(mu, "a", "b"))
 
+    def test_no_warning_or_exception_when_mu_increases(self):
+        # A non-attack candidate examined mid-search (e.g. papers/oakley.py's epsilon-ball
+        # sampling) can legitimately have mu(m') > mu(m); severity() must fold this to 0.0
+        # quietly, not warn or raise -- see severity()'s docstring for why this is routine.
+        import warnings
+        mu = lambda m: {"a": 10.0, "b": 20.0}[m]
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")   # any warning here would fail the test
+            self.assertEqual(severity(mu, "a", "b"), 0.0)
+
+
+class TestCandidateSpace(unittest.TestCase):
+    """Definition 6's C(m) = {m' in M | m ~> m'}, exposed directly as
+    AttackSynthesizer.candidate_space / ThreatModel.candidate_space, should match exactly the
+    set of candidates the search itself would expand at depth 1 -- i.e. everything ModelType
+    offers that also passes edit_relation, and nothing else."""
+
+    def test_matches_manual_filtering(self):
+        verifier = lambda m, _phi: m % 2 == 0
+        edit = lambda a, b: abs(a - b) == 1
+        mt = ModelType("int", universe=lambda m: (m - 2, m - 1, m + 1, m + 2), key=lambda m: m)
+        synth = make_attack_synth(verifier, mt, edit)
+        expected = {c for c in mt.universe(10) if edit(10, c)}
+        self.assertEqual(set(synth.candidate_space(10)), expected)
+        self.assertEqual(expected, {9, 11})   # sanity: edit_relation correctly excludes +/-2
+
+    def test_threat_model_and_dual_agree(self):
+        # phi must be in the Atom/Not/Op AST here so structural_dual (Definition 4) applies.
+        verifier = lambda m, phi: (m % 2 == 0) if isinstance(phi, Atom) else (m % 2 == 1)
+        edit = lambda a, b: abs(a - b) == 1
+        mt = ModelType("int", universe=lambda m: (m - 1, m + 1), key=lambda m: m)
+        logic = Logic("parity", verifier)
+        tm = ThreatModel(logic, m=10, phi=Atom("even"), model_type=mt, edit_relation=edit)
+        self.assertEqual(set(tm.candidate_space()), set(tm.dual().candidate_space()))
+
 
 class TestEquivalenceWithMakeAttackSynth(unittest.TestCase):
     """The new ThreatModel layer must be provably just a relabeling of make_attack_synth, not a

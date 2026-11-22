@@ -415,6 +415,40 @@ None built in. &
 Symbolic model checking over polyhedra. Termination is not guaranteed. Also parametric analysis and
 diagnostic error traces. &
 $m$: hybrid automaton; $\adv$: edits to rates, guards, and resets, supplied by the user. \\
+\addlinespace
+Alloy \cite{alloy} &
+Relational structures over a finite, user-chosen scope: fixed signatures and the relations (``fields'')
+declared over them. &
+Facts (constraints every valid instance must satisfy) and assertions (claimed consequences of the facts),
+both relational first-order formulas. &
+None built in. The natural $\adv$ is the universal relation over every instance satisfying the same facts,
+since Alloy's \texttt{check} command asks whether \emph{every} such instance also satisfies the assertion. &
+Translation of relational logic into boolean logic, solved by SAT, bounded by the declared scope (the
+``small scope hypothesis''): no counterexample within scope is not a proof none exists at a larger one. &
+$m$: a relational instance; $\varphi$: an assertion; $\adv$: any other instance satisfying the same facts;
+attack: a counterexample instance violating the assertion. \\
+\addlinespace
+UPPAAL \cite{uppaal} &
+Networks of timed automata: locations with clock invariants, edges with guards and resets, synchronized
+over channels; every clock advances at a fixed rate. &
+A decidable fragment of TCTL, covering reachability and safety queries over the automata network. &
+None built in. The natural $\adv$ edits a guard or invariant threshold (a timing margin), since that is
+the only lever available to compromise a timed system's safety. &
+Symbolic reachability over zones (regions of clock-value space), explored on the fly rather than
+precomputed. &
+$m$: a network configuration (its guards/invariants); $\varphi$: a safety query (a location is never
+reached); $\adv$: a threshold edit; attack: an edit after which the forbidden location becomes reachable. \\
+\addlinespace
+Margrave \cite{margrave} &
+A policy as a mapping from requests to decisions: an ordered list of rules combined ``first applicable.'' &
+First-order queries over per-rule $R_{\mathit{matches}}$/$R_{\mathit{applies}}$ formulas, e.g.\ whether a
+given request is ever permitted. &
+None built in. The paper's own ``change impact'' analysis is defined over edits to the rule list, which is
+exactly the $\adv$ this instantiation uses: insert, delete, flip, or reorder a rule. &
+Compilation to first-order relational formulas, solved by the Kodkod/Alloy SAT backend over a bounded
+universe. &
+$m$: an ordered rule list; $\varphi$: a fixed request must decide ``deny''; $\adv$: a single rule edit;
+attack: an edit after which the request decides ``permit.'' \\
 \bottomrule
 \end{longtable}
 \endgroup
@@ -531,6 +565,122 @@ Not defined as a ratio; the paper reports the share of scenarios verified secure
 \endgroup
 \end{landscape}
 
+%====================================================================
+\section{Mechanization}
+%====================================================================
+
+Sections~1--4 define the framework abstractly: a logic, a threat model, an attack, a dual threat
+model, a realized dual attack, and a severity ratio. Realizing any one of these for a particular
+logic $L$ and threat model $T$ requires only two computable ingredients: the satisfaction relation
+$\models$, and the capability relation $\adv$. We provide an open-source reference implementation,
+\texttt{attack\_synth.py} \cite{attacksynth}, that takes exactly these two ingredients and performs
+an automated search for a witness of Definition~3 (an attack) or Definition~6 (a realized dual
+attack), computing Definition~9's severity automatically whenever a measure is supplied. This
+section describes that implementation and what mechanizing the framework does and does not buy us.
+
+\begin{definition}
+Given a logic $L = (M, \Phi, \models)$ and a threat model $T = (m, \varphi, \adv)$ with computable
+$\models$ and $\adv$, the \emph{realized-attack search problem} asks for some $m' \in C(m) =
+\{m' \in M \mid m \adv m'\}$ with $m' \nsat \varphi$ (or, dually, $m' \models (\varphi)^{d}$). This
+problem is recursively enumerable whenever $C(m)$ is computably enumerable, and decidable whenever
+$C(m)$ is additionally finite.
+\end{definition}
+
+\begin{remark}
+Because $\adv$ is not assumed associative (Definition~2), a path $m \adv m_1 \adv \cdots \adv m'$ of
+$k$ composed edits is a choice the user makes about how much capability to grant the adversary, not
+a property derivable from $\adv$ alone. Our implementation exposes this choice directly as a
+parameter \texttt{max\_steps}, defaulting to $k = 1$ (a single edit, exactly Definition~3).
+\end{remark}
+
+The implementation is organized around three objects, corresponding directly to the tuples above:
+
+\begin{itemize}
+  \item \texttt{Logic(name, verifier)} -- the pair $(\models, \text{implicitly } M, \Phi)$. \texttt{verifier}
+  \emph{is} $\models$, encoded (as a relation always can be) as the boolean function
+  $f(m, \varphi) = \mathsf{True}$ iff $m \models \varphi$.
+  \item \texttt{ModelType(universe, neighbors, key, perturb)} -- the candidate space the adversary can reach.
+  $\adv$ itself, a relation $\adv\ \subseteq M \times M$, is likewise encoded as a boolean function
+  \texttt{edit\_relation}$(m, m') = \mathsf{True}$ iff $m \adv m'$. A \texttt{ModelType} supplies candidates
+  either by over-approximating with \texttt{universe} and filtering by \texttt{edit\_relation} (exact, for
+  small enumerable $M$), or by generating already-restricted candidates with \texttt{neighbors} (for $M$ too
+  large or continuous to enumerate, e.g.\ an $\varepsilon$-ball of perturbed DTMCs or a gadget library).
+  \item \texttt{ThreatModel(logic, m, phi, model\_type, edit\_relation, measure, max\_steps)} -- the tuple
+  $T = (m, \varphi, \adv)$ itself. Constructing one checks $m \models \varphi$ (Definition~2's precondition)
+  and raises an error if it fails, rather than silently searching from an invalid baseline.
+\end{itemize}
+
+Given a \texttt{ThreatModel}, \texttt{synthesize()} searches $C(m)$ for a witness. With no measure
+and no search budget, the search is an exhaustive breadth-first sweep of $C(m)$ up to
+\texttt{max\_steps}, so no attack is missed within that bound. When a measure $\mu$ is supplied, the
+search instead expands the most severe candidates first (ranked by $\sigma$, Definition~9), so that
+a budget -- a cap on candidates examined -- still finds a high-severity attack quickly on a space too
+large to exhaust. A further \texttt{robust} flag asks for an attack that holds for every
+\texttt{perturb}$(m')$ of a candidate, the universally-quantified ``for all unpredictable inputs''
+reading of an attack used by one of the frameworks compared in Example~\ref{ex:comparison} (Bailluet et
+al.\ \cite{bailluet}'s robust gadget chains).
+
+\begin{table}[h]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{L{4.2cm} L{4.2cm}}
+\toprule
+\textbf{Definition} & \textbf{Code construct (\texttt{attack\_synth.py})} \\
+\midrule
+Logic $L = (M, \Phi, \models)$ & \texttt{Logic(name, verifier)} \\
+Threat model $T = (m, \varphi, \adv)$ & \texttt{ThreatModel(...)}; raises unless $m \models \varphi$ \\
+Attack $(m \adv m') \wedge (m' \nsat \varphi)$ & \texttt{ThreatModel.synthesize(goal="violate")} \\
+Structural dual $(\cdot)^{d}$ & \texttt{structural\_dual(phi)} \\
+Dual threat model $T^{d}$ & \texttt{DualThreatModel(base, phi\_d)} \\
+Realized dual attack $m' \models (\varphi)^{d}$ & \texttt{DualThreatModel.realized()} \\
+Probability measure space $(\M, \Sigma, \mu)$ & \texttt{MeasureSpace(mu)} \\
+Severity $\sigma = 1 - \mu(M')/\mu(M)$ & \texttt{severity(mu, m, m')} \\
+\bottomrule
+\end{tabular}
+\caption{Each Definition in Sections~1--4 and the code construct realizing it literally.}
+\label{tab:conformance}
+\end{table}
+
+\begin{example}[Instantiated Model Classes]
+\label{ex:instances}
+Without modifying the search engine itself, the implementation has been instantiated against: all
+eight logics of Example~\ref{ex:logics} (run as executable checkers, not just tabulated); all four
+frameworks compared in Example~\ref{ex:comparison} (Oakley et al., von Hippel et al., Bailluet et al.,
+Wardega et al.), each reusing that paper's own model class and adversary; and all nine tools of
+Example~\ref{ex:checkers} (Tamarin, SPIN, ProVerif, nuXmv, PRISM, HyTech, Alloy, UPPAAL, Margrave),
+each reusing that tool's own documented semantics. Twenty-one independently verified instances
+across temporal, epistemic, probabilistic, hybrid, timed, relational, and Hoare-style logics, none
+of which required a change to \texttt{ModelType} or the search procedure -- only new
+\texttt{verifier}/\texttt{edit\_relation} pairs.
+\end{example}
+
+\begin{remark}
+Mechanization is checked, not asserted: an accompanying test suite reconstructs each Definition's
+precondition and conclusion as an executable assertion -- that $(\cdot)^{d}$ is an involution, that
+a found attack genuinely satisfies $(m \adv m') \wedge (m' \nsat \varphi)$ against the raw
+$\models$/$\adv$ (not merely trusted from the search), that a realized dual attack genuinely
+satisfies $m' \models (\varphi)^{d}$, that $\sigma$ is clamped to $[0,1]$ and attains all three cases
+of Definition~9, and that the \texttt{ThreatModel} API and the lower-level search engine agree
+exactly on a shared instance. All tests pass, including against a model class (Margrave's
+first-applicable rule ordering) added after this API was written.
+\end{remark}
+
+\paragraph{Implications.} Mechanizing the framework does not add content to it -- every result above
+follows from Sections~1--4 alone -- but it changes what ``this framework applies to arbitrary
+logics'' means from a claim to a falsifiable one: Example~\ref{ex:instances} is twenty-one chances
+for the claim to have failed, and it did not. The generality is bounded exactly where
+Definitions~1--2 say it should be: the engine supplies no $\models$ or $\adv$ of its own, so it is a
+search substrate, not an oracle, and a ``no attack found'' result is only as strong as the fidelity
+of the supplied model and the completeness of the search budget -- the same caveat already attached
+to several tools in Example~\ref{ex:checkers} (ProVerif's incompleteness, HyTech's non-terminating
+symbolic reachability). What the mechanization adds operationally is severity as a common currency:
+The comparison in Example~\ref{ex:comparison} shows that none of the four compared frameworks define a severity ratio,
+each instead reporting a success/failure flag, a probability drop, or a solving time specific to its
+own logic. Definition~9's $\sigma \in [0,1]$ lets attacks found in entirely different logics -- a
+DTMC perturbation, a firewall misconfiguration, a timed-automaton race -- be ranked on the same
+scale, which is a capability none of the individual logics or tools provide on their own.
+
 \begin{thebibliography}{9}
 \bibitem{oakley} L.\ Oakley, A.\ Oprea, S.\ Tripakis. \emph{Adversarial Robustness Verification and Attack Synthesis in Stochastic Systems}. arXiv:2110.02125.
 \bibitem{vonhippel} M.\ von Hippel, C.\ Vick, S.\ Tripakis, C.\ Nita-Rotaru. \emph{Automated Attacker Synthesis for Distributed Protocols}. arXiv:2004.01220.
@@ -542,6 +692,10 @@ Not defined as a ratio; the paper reports the share of scenarios verified secure
 \bibitem{nuxmv} The nuXmv model checker. \url{https://nuxmv.fbk.eu/} (features page), and the CAV 2014 tool paper.
 \bibitem{prism} The PRISM model checker: model types and properties. \url{https://prismmodelchecker.org/doc/whatsinprism.php}.
 \bibitem{hytech} T.\ A.\ Henzinger, P.-H.\ Ho, H.\ Wong-Toi. \emph{HyTech: A Model Checker for Hybrid Systems}. CAV 1997.
+\bibitem{alloy} \emph{Alloy (specification language)}. \url{https://en.wikipedia.org/wiki/Alloy_(specification_language)}.
+\bibitem{uppaal} \emph{UPPAAL Model Checker}. \url{https://en.wikipedia.org/wiki/Uppaal_Model_Checker}.
+\bibitem{margrave} T.\ Nelson, C.\ Barratt, D.\ J.\ Dougherty, K.\ Fisler, S.\ Krishnamurthi. \emph{The Margrave Tool for Firewall Analysis}. USENIX LISA, 2010.
+\bibitem{attacksynth} \emph{attack-synth}: reference implementation of this paper's framework. \url{https://github.com/samvonhippel/attack-synth}.
 \end{thebibliography}
 
 \end{document}

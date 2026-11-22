@@ -1,0 +1,55 @@
+
+======================================================================
+tamarin
+======================================================================
+Tamarin-style -- Dolev-Yao deduction closure over a rule-set edit
+  base knowledge: ["('const', '0')", "('const', '1')", "('enc', 'secret', ('key', 'sk'))", "('enc', ('key', 'sk'), ('key', 'ltk'))"]
+  secrecy of 'secret' before any edit: True
+  attack: compromising ["('key', 'ltk')"] (adding a rule granting it) leaks the secret
+  (explored 1 candidate rule-set edits in 0.0 ms)
+  real tamarin-prover: not available in this environment
+
+======================================================================
+spin
+======================================================================
+SPIN-style -- interleaving search with an added process
+  honest system alone satisfies mutual exclusion: True (trivially, P3 absent)
+  attack: adding process P3 reaches a state violating mutual exclusion after 5 interleaved steps
+  violating state: pcs=('cs', 'cs', 'idle'), shared={'turn': 1}
+  (explored 5 interleavings in 0.0 ms)
+  real spin: not available in this environment
+
+======================================================================
+proverif
+======================================================================
+ProVerif-style -- Horn-clause resolution over a protocol clause edit
+  secrecy with the honest decryption clause: True
+  attack: dropping the key-check in the decryption clause (a 'leak' oracle) lets att(secret) be derived by the fixed Dolev-Yao rules alone
+  (explored 1 clause-set edits in 0.0 ms)
+  real proverif: not available in this environment
+
+======================================================================
+nuxmv
+======================================================================
+nuXmv-style -- explicit-state reachability with one transition/assignment edit
+  attack: a single edit along the run reaches phase=NS_GREEN, walk=True -- the invariant 'no WALK during a green light' is violated
+  (explored 3 states in 0.0 ms, path length 1)
+  real nuXmv: not available in this environment
+
+======================================================================
+prism
+======================================================================
+PRISM-style -- MDP value iteration (Pmin) with epsilon-ball perturbation
+  base Pmin(F<=10 delivered) = 0.9980  (worst case over 'send' vs 'hold')
+  attack: perturbing [(2, 'retry')] drops Pmin to 0.9899 (below the 0.995 bound)
+  (explored 12 perturbations in 0.9 ms)
+  real prism: not available in this environment
+
+======================================================================
+hytech
+======================================================================
+HyTech-style -- interval/box reachability with rate/guard/reset edits
+  baseline: FILL & x>=9.5 reachable = False (the guard at x>=8 switches to DRAIN first)
+  attack: edit 'guard[0] += 1.0' makes FILL & x>=9.5 reachable (box reached: 6.40..9.60)
+  (explored 16 hybrid states in 0.0 ms)
+  real hytech: not available in this environment

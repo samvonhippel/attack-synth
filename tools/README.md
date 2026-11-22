@@ -20,15 +20,17 @@ Run all: `python3 tools/run_all.py` (or `python3 -m tools.run_all` from the repo
 | `hytech.py` | HyTech | a two-location linear hybrid automaton (fill/drain tank) with urgent guarded edges; adversary edits a rate, guard, or reset | continuous-flow reachability via interval/box over-approximation -- the only instance in this repository with continuous dynamics |
 | `alloy.py` | Alloy | a bounded relational structure (Users/Files + owner/sharedWith/canAccess) with an unconstrained derived relation; adversary ranges over *every* valid instance | no incremental edit at all -- `~>` is the universal relation over instances satisfying the same facts, matching Alloy's own "check every instance" semantics, not a step-by-step mutation |
 | `uppaal.py` | UPPAAL | a network of two timed automata (Task/Watchdog) synchronized on channels, with rate-1 clocks; adversary edits a guard/invariant threshold | the only instance with continuous *time* (vs. HyTech's continuous *rate*) and the first to use `max_steps=None` (unbounded search depth, terminated by `budget`), since a timed system has no natural fixed step count |
+| `margrave.py` | Margrave | an ordered, first-applicable firewall ACL (Margrave's own `(RComb FAC)` semantics); adversary inserts/deletes/flips/reorders a rule | the only instance built through the paper-literal `Logic`/`ThreatModel`/`DualThreatModel` API (see `attack_synth.py`) instead of calling `make_attack_synth` directly, and the only one where *order itself* (not state, not time, not a relation) is what the adversary can exploit |
 
-Every one of these tools is native to `make_attack_synth`: the adversary's edit is encoded as a
-`ModelType.neighbors` generator (or, for `tamarin.py`/`proverif.py`, a one-shot set of candidate
-rule-set edits), and the verifier is each tool's own core algorithm re-implemented explicitly
-(deduction closure, interleaving search, clause resolution, explicit-state reachability, value
-iteration, interval reachability) rather than symbolically.
+Every one of these tools is native to `make_attack_synth` (directly, or via the `ThreatModel`
+wrapper for `margrave.py`): the adversary's edit is encoded as a `ModelType.neighbors` generator
+(or, for `tamarin.py`/`proverif.py`, a one-shot set of candidate rule-set edits), and the verifier
+is each tool's own core algorithm re-implemented explicitly (deduction closure, interleaving
+search, clause resolution, explicit-state reachability, value iteration, interval reachability,
+first-applicable rule matching) rather than symbolically.
 
 Each file also includes `to_<format>()`, rendering the instance in the tool's real native input
-language (`.spthy`, Promela, `.pv`, `.smv`, `.prism`, `.hy`, `.als`, UPPAAL's NTA XML), and
-`run_real_<tool>()`, which shells out to the real binary via `shutil.which` if one happens to be
-installed. None of the eight are installed in this environment, so every `run_real_*` call reports
-that plainly rather than pretending to have run the real tool.
+language (`.spthy`, Promela, `.pv`, `.smv`, `.prism`, `.hy`, `.als`, UPPAAL's NTA XML, a Cisco
+IOS-style ACL for Margrave), and `run_real_<tool>()`, which shells out to the real binary via
+`shutil.which` if one happens to be installed. None of the nine are installed in this environment,
+so every `run_real_*` call reports that plainly rather than pretending to have run the real tool.

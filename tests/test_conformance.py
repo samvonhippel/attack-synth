@@ -211,5 +211,41 @@ class TestEquivalenceWithMakeAttackSynth(unittest.TestCase):
         self.assertEqual([a.model for a in r_direct.attacks], [a.model for a in r_dual.attacks])
 
 
+class TestMargraveIsGenuineConformance(unittest.TestCase):
+    """tools/margrave.py is the one instance built through the literal Logic/ThreatModel API in a
+    domain (ordered first-applicable rule matching) invented after that API was written -- the
+    concrete test that the paper-conformance layer isn't just special-cased to the demos it was
+    designed alongside. Re-derive its ThreatModel here and check the same three things
+    TestAttackIsGenuine checks for a hand-rolled toy model."""
+
+    def test_margrave_attack_is_genuine(self):
+        from tools import margrave
+        tm = margrave.build_threat_model()
+        self.assertTrue(tm.logic.verifier(tm.m, tm.phi))          # precondition: m |= phi
+        result = tm.synthesize(budget=2000, limit=1)
+        self.assertTrue(result.found)
+        mprime = result.best.model
+        self.assertFalse(tm.logic.verifier(mprime, tm.phi))       # m' |/= phi
+        self.assertIn(mprime, set(margrave.margrave_neighbors(tm.m)))  # m ~> m'
+
+    def test_margrave_dual_realized(self):
+        from tools import margrave
+        tm = margrave.build_threat_model()
+        d = tm.dual()
+        self.assertEqual(d.phi_d, Not(Atom("deny")))
+        result = d.realized(budget=2000, limit=1)
+        self.assertTrue(result.found)
+        self.assertTrue(tm.logic.verifier(result.best.model, d.phi_d))
+
+    def test_margrave_severity_in_bounds(self):
+        from tools import margrave
+        tm = margrave.build_threat_model()
+        result = tm.synthesize(budget=2000, limit=1)
+        self.assertTrue(result.found)
+        self.assertIsNotNone(result.best.sigma)
+        self.assertGreaterEqual(result.best.sigma, 0.0)
+        self.assertLessEqual(result.best.sigma, 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()

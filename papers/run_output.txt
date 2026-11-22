@@ -4,18 +4,18 @@ oakley
 ======================================================================
 Oakley et al. -- DTMC epsilon-ball attack synthesis
   base model:  Pr(F<=20 delivered) = 0.9997   phi: PCTLBound(kind='F', label='delivered', bound=20, cmp='>=', p=0.95)
-  [SS  ] sampled    91 candidates in   21.1 ms  worst Pr=0.9197  max delta found=0.0800  robust at delta=0.02: False
+  [SS  ] sampled    91 candidates in   20.9 ms  worst Pr=0.9197  max delta found=0.0800  robust at delta=0.02: False
          worst-case perturbation: P[0][1]: 1.000->0.920, P[0][6]: 0.000->0.080
-  [ST  ] sampled    30 candidates in    7.7 ms  worst Pr=0.9997  max delta found=0.0000  robust at delta=0.02: True
-  [SPSS] sampled    47 candidates in   11.7 ms  worst Pr=0.9997  max delta found=0.0000  robust at delta=0.02: True
-  [SPST] sampled    24 candidates in    5.5 ms  worst Pr=0.9997  max delta found=0.0000  robust at delta=0.02: True
+  [ST  ] sampled    30 candidates in    7.0 ms  worst Pr=0.9997  max delta found=0.0000  robust at delta=0.02: True
+  [SPSS] sampled    47 candidates in   10.9 ms  worst Pr=0.9997  max delta found=0.0000  robust at delta=0.02: True
+  [SPST] sampled    24 candidates in    5.6 ms  worst Pr=0.9997  max delta found=0.0000  robust at delta=0.02: True
 
 ======================================================================
 vonhippel
 ======================================================================
 von Hippel et al. -- DAISY-replacement attacker synthesis
   phi: every 'req' is followed by 'ack' within 3 actions
-  explored 11 trace extensions in 0.0 ms
+  explored 11 trace extensions in 0.1 ms
   violating run of P || DAISY(Q): ('req', 'nop', 'nop', 'nop')
   synthesized exists-attacker A (DAISY's choices projected onto Q's interface): ('nop', 'nop', 'nop')
   i.e. A always chooses 'timeout'/'nop' and never 'ack' -- a silent responder that never acknowledges.

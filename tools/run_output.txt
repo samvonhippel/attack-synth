@@ -42,7 +42,7 @@ prism
 PRISM-style -- MDP value iteration (Pmin) with epsilon-ball perturbation
   base Pmin(F<=10 delivered) = 0.9980  (worst case over 'send' vs 'hold')
   attack: perturbing [(2, 'retry')] drops Pmin to 0.9899 (below the 0.995 bound)
-  (explored 12 perturbations in 0.9 ms)
+  (explored 12 perturbations in 0.7 ms)
   real prism: not available in this environment
 
 ======================================================================
@@ -53,3 +53,33 @@ HyTech-style -- interval/box reachability with rate/guard/reset edits
   attack: edit 'guard[0] += 1.0' makes FILL & x>=9.5 reachable (box reached: 6.40..9.60)
   (explored 16 hybrid states in 0.0 ms)
   real hytech: not available in this environment
+
+======================================================================
+alloy
+======================================================================
+Alloy-style -- bounded relational-instance enumeration
+  intended canAccess: [('u1', 'f1'), ('u2', 'f1'), ('u2', 'f2')]
+  assertion holds for the intended instance: True
+  counterexample instance found: canAccess = [('u1', 'f2')]
+  unauthorized pairs present: [('u1', 'f2')]; legitimate pairs dropped: [('u1', 'f1'), ('u2', 'f1'), ('u2', 'f2')]
+  (enumerated 5 of 16 instances in the scope)
+  real alloy: not available in this environment
+
+======================================================================
+uppaal
+======================================================================
+UPPAAL-style -- timed-automata reachability (rate-1 clocks, channel sync)
+  baseline (max_duration=4.0, timeout=6.0): Alarm reachable = False
+  attack: edit 'max_duration += 2.0' makes Alarm reachable after 14 steps (explored 28 states in 0.1 ms, unbounded depth, budget-limited search)
+  real uppaal (verifyta): not available in this environment
+
+======================================================================
+margrave
+======================================================================
+Margrave-style -- ordered first-applicable firewall policy analysis
+  baseline: decide(REQUEST=('blacklisted', 'admin')) = 'deny'  (coverage of intended decisions: 1.00)
+  attack found: edited ruleset makes decide(REQUEST) = 'permit'
+    edited policy: [Rule(action='permit', src='blacklisted', dst='admin'), Rule(action='deny', src='blacklisted', dst='*'), Rule(action='permit', src='normal', dst='public'), Rule(action='permit', src='normal', dst='admin'), Rule(action='deny', src='*', dst='*')]
+    severity sigma = 0.25 (coverage dropped from 1.00 to 0.75)
+  dual threat model T^d: phi^d = Not(f=Atom(name='deny')) (for a single literal invariant, 'violate' and 'dual' coincide, unlike the compound-formula demos in demos.py) -- realized: True
+  real margrave: not available in this environment

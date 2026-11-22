@@ -1,0 +1,21 @@
+
+======================================================================
+adversarial_ml
+======================================================================
+Adversarial-ML-style -- L-infinity epsilon-ball bounded-perturbation attack search
+  classifier: sign(1.0*x1 + 1.0*x2 + -1.0)   boundary: x1+x2=1
+  baseline x0=(0.8, 0.8)  margin=0.600  predict=1 (true label 1)  confidence=0.646
+  adversarial example found: x'=(0.3, 0.3)  margin=-0.400  predict=-1 (flipped)  confidence=0.401
+    L-infinity perturbation: 0.500  (epsilon budget: 0.5)
+    severity sigma = 0.378  (explored 1 grid points in 0.0 ms)
+  smaller ball (eps=0.05) around (0.9, 0.9): adversarial example found = False (expected False -- margin there is 0.800, ball radius can't flip the sign)
+
+======================================================================
+raft_election_safety
+======================================================================
+Raft-style -- Election Safety under a lost/forgotten persisted vote
+  baseline grants: {'A': frozenset({'A'}), 'B': frozenset({'A'}), 'C': frozenset({'A'})}  leaders: ['A']  (Election Safety holds: True)
+  attack found (single edit): {'A': frozenset({'A', 'B'}), 'B': frozenset({'A', 'B'}), 'C': frozenset({'A'})}
+    leaders: ['A', 'B']  (Election Safety violated: split-brain with 2 simultaneous leaders)
+    severity sigma = 0.500  (explored 1 candidate states in 0.0 ms)
+  (no dual-goal demonstration here: phi is an opaque sentinel object, not a formula in the Atom/Not/Op AST, so structural_dual(phi) -- Definition 4 -- does not apply to it; see demos.py's LTL/CTL/etc. demos, or tools/margrave.py, for instances where phi is in that AST and goal="dual" is meaningful.)

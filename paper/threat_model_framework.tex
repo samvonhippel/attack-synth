@@ -594,29 +594,25 @@ parameter \texttt{max\_steps}, defaulting to $k = 1$ (a single edit, exactly Def
 The implementation is organized around three objects, corresponding directly to the tuples above:
 
 \begin{itemize}
-  \item \texttt{Logic(name, verifier)} -- the pair $(\models, \text{implicitly } M, \Phi)$. \texttt{verifier}
-  \emph{is} $\models$, encoded (as a relation always can be) as the boolean function
-  $f(m, \varphi) = \mathsf{True}$ iff $m \models \varphi$.
-  \item \texttt{ModelType(universe, neighbors, key, perturb)} -- the candidate space the adversary can reach.
-  $\adv$ itself, a relation $\adv\ \subseteq M \times M$, is likewise encoded as a boolean function
-  \texttt{edit\_relation}$(m, m') = \mathsf{True}$ iff $m \adv m'$. A \texttt{ModelType} supplies candidates
-  either by over-approximating with \texttt{universe} and filtering by \texttt{edit\_relation} (exact, for
-  small enumerable $M$), or by generating already-restricted candidates with \texttt{neighbors} (for $M$ too
-  large or continuous to enumerate, e.g.\ an $\varepsilon$-ball of perturbed DTMCs or a gadget library).
-  \item \texttt{ThreatModel(logic, m, phi, model\_type, edit\_relation, measure, max\_steps)} -- the tuple
-  $T = (m, \varphi, \adv)$ itself. Constructing one checks $m \models \varphi$ (Definition~2's precondition)
-  and raises an error if it fails, rather than silently searching from an invalid baseline.
+  \item \texttt{Logic(name, verifier)} -- $\models$, with $M$ and $\Phi$ implicit, encoded as the
+  boolean function $f(m, \varphi) = \mathsf{True}$ iff $m \models \varphi$.
+  \item \texttt{ModelType(universe, neighbors, key, perturb)} -- the candidate space the adversary
+  can reach. $\adv$ is likewise encoded as a boolean function
+  \texttt{edit\_relation}$(m, m') = \mathsf{True}$ iff $m \adv m'$, applied either by filtering an
+  over-approximate \texttt{universe} (exact, for small enumerable $M$) or by generating
+  already-restricted \texttt{neighbors} (for $M$ too large or continuous to enumerate, e.g.\ an
+  $\varepsilon$-ball of perturbed DTMCs or a gadget library).
+  \item \texttt{ThreatModel(logic, m, phi, model\_type, edit\_relation, measure, max\_steps)} -- the
+  tuple $T = (m, \varphi, \adv)$ itself. Constructing one checks $m \models \varphi$ (Definition~2's
+  precondition) and raises an error if it fails, rather than searching from an invalid baseline.
 \end{itemize}
 
-Given a \texttt{ThreatModel}, \texttt{synthesize()} searches $C(m)$ for a witness. With no measure
-and no search budget, the search is an exhaustive breadth-first sweep of $C(m)$ up to
-\texttt{max\_steps}, so no attack is missed within that bound. When a measure $\mu$ is supplied, the
-search instead expands the most severe candidates first (ranked by $\sigma$, Definition~9), so that
-a budget -- a cap on candidates examined -- still finds a high-severity attack quickly on a space too
-large to exhaust. A further \texttt{robust} flag asks for an attack that holds for every
-\texttt{perturb}$(m')$ of a candidate, the universally-quantified ``for all unpredictable inputs''
-reading of an attack used by one of the frameworks compared in Example~\ref{ex:comparison} (Bailluet et
-al.\ \cite{bailluet}'s robust gadget chains).
+Given a \texttt{ThreatModel}, \texttt{synthesize()} searches $C(m)$ for a witness: exhaustive
+breadth-first up to \texttt{max\_steps} by default, or, when a measure $\mu$ is supplied, best-first
+by severity ($\sigma$, Definition~9) so a budget still finds a high-severity attack quickly on a
+space too large to exhaust. A further \texttt{robust} flag asks for an attack holding for every
+\texttt{perturb}$(m')$ of a candidate -- the ``for all unpredictable inputs'' quantifier of Bailluet
+et al.\ \cite{bailluet}'s robust gadget chains (Example~\ref{ex:comparison}).
 
 \begin{table}[h]
 \centering
@@ -669,12 +665,12 @@ Definitions~1--2 say it should be: the engine supplies no $\models$ or $\adv$ of
 search substrate, not an oracle, and a ``no attack found'' result is only as strong as the fidelity
 of the supplied model and the completeness of the search budget -- the same caveat already attached
 to several tools in Example~\ref{ex:checkers} (ProVerif's incompleteness, HyTech's non-terminating
-symbolic reachability). What the mechanization adds operationally is severity as a common currency:
-The comparison in Example~\ref{ex:comparison} shows that none of the four compared frameworks define a severity ratio,
-each instead reporting a success/failure flag, a probability drop, or a solving time specific to its
-own logic. Definition~9's $\sigma \in [0,1]$ lets attacks found in entirely different logics -- a
-DTMC perturbation, a firewall misconfiguration, a timed-automaton race -- be ranked on the same
-scale, which is a capability none of the individual logics or tools provide on their own.
+symbolic reachability). What mechanization adds operationally is severity as a common currency:
+none of the four frameworks in Example~\ref{ex:comparison} define a severity ratio, reporting
+instead a success/failure flag, a probability drop, or a solving time specific to their own logic.
+Definition~9's $\sigma \in [0,1]$ lets attacks from entirely different logics -- a DTMC perturbation,
+a firewall misconfiguration, a timed-automaton race -- be ranked on one scale, which no individual
+logic or tool provides on its own.
 
 \begin{thebibliography}{9}
 \bibitem{oakley} L.\ Oakley, A.\ Oprea, S.\ Tripakis. \emph{Adversarial Robustness Verification and Attack Synthesis in Stochastic Systems}. arXiv:2110.02125.

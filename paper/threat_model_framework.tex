@@ -358,95 +358,92 @@ by the user as part of the model.
 \midrule
 \endhead
 Tamarin \cite{tamarin} &
-Protocols are multiset rewriting rules defining a labeled transition system whose state includes a symbolic
-representation of the adversary's knowledge, network messages, fresh values, and protocol state. &
-Trace properties (first-order formulas over timestamped action facts), and observational equivalence of two
-transition systems. &
-Written in the same rule language: adversaries are also multiset rewriting rules, with the standard
-instantiation being Dolev--Yao message deduction. &
-Constraint solving: an exhaustive symbolic search for a trace satisfying the negation of the property. A
-property is valid if no satisfying trace exists. &
-$m$: rule set; $\varphi$: lemma; $\adv$: adding or changing a rewrite rule; attack: a trace of the edited rule set violating the lemma. \\
+Multiset-rewriting rules defining a labeled transition system over protocol state, messages, and
+the adversary's symbolic knowledge. &
+Trace properties (first-order formulas over timestamped action facts) and observational
+equivalence. &
+Also rules in the same language; standard instantiation is Dolev--Yao deduction. &
+Constraint solving: exhaustive symbolic search for a trace violating the property. &
+$m$: rule set; $\varphi$: lemma; $\adv$: edit a rule; attack: an edited rule set's trace violating the lemma. \\
 \addlinespace
 SPIN \cite{spin} &
 Promela processes and channels (rendezvous or buffered); execution interleaves enabled statements. &
-Assertions, invalid end states, progress and acceptance labels, and never claims for general linear-time
-properties (LTL). &
-None built in. Nondeterministic scheduling explores all interleavings, and an environment is modeled as
-ordinary processes. &
-Exhaustive depth-first search over reachable states with partial order reduction; bitstate hashing for large
-models, which can miss errors but never reports false ones. &
+Assertions, invalid end states, progress/acceptance labels, and never claims (LTL). &
+None built in; nondeterministic scheduling explores all interleavings, with the environment
+modeled as ordinary processes. &
+Exhaustive DFS with partial-order reduction; bitstate hashing for large models (sound against
+false positives, may miss errors). &
 $m$: process composition; $\adv$: replacing or adding a process, as in the attacker synthesis of \cite{vonhippel}. \\
 \addlinespace
 ProVerif \cite{proverif} &
-Protocols in a dialect of the applied $\pi$-calculus, with cryptographic primitives given as constructors and
-destructors (rewrite rules). &
-Secrecy (as reachability of the attacker-knowledge predicate), correspondence assertions, and
+Protocols in applied $\pi$-calculus, with cryptographic primitives as constructor/destructor
+rewrite rules. &
+Secrecy (reachability of the attacker-knowledge predicate), correspondence assertions, and
 diff-equivalence. &
-Symbolic Dolev--Yao attacker with perfect cryptography. It is not a separate component: it is encoded as Horn
-clauses over the predicate $\mathit{att}(M)$. &
-Resolution with free selection over Horn clauses, which abstracts away protocol-level constraints to handle
-unboundedly many sessions. It may not terminate and is incomplete (false attacks). &
+Symbolic Dolev--Yao attacker with perfect cryptography, encoded as Horn clauses over the predicate
+$\mathit{att}(M)$ rather than a separate component. &
+Horn-clause resolution, abstracting protocol-level constraints to handle unboundedly many
+sessions; may not terminate and is incomplete (false attacks). &
 $m$: process; $\varphi$: query; $\adv$: fixed by the tool (Dolev--Yao); attack: a derivable fact that violates the query. \\
 \addlinespace
 nuXmv \cite{nuxmv} &
-Finite- and infinite-state synchronous transition systems, with Integer, Real, and uninterpreted-function
-types for the infinite case. &
+Finite- and infinite-state synchronous transition systems, with Integer, Real, and
+uninterpreted-function types for the infinite case. &
 Invariants, and LTL and CTL properties inherited from NuSMV. &
 None built in. &
-Finite-state: SAT-based algorithms, interpolation-based invariant checking, IC3, $k$-liveness. Infinite-state:
-SMT-based BMC, $k$-induction, interpolation, IC3, and CEGAR abstraction. &
-$m$: transition system; $\adv$: mutation of the transition relation or of variable assignments, supplied by the user. \\
+Finite-state: SAT-based algorithms, interpolation, IC3, $k$-liveness. Infinite-state: SMT-based
+BMC, $k$-induction, interpolation, IC3, and CEGAR abstraction. &
+$m$: transition system; $\adv$: mutation of the transition relation or variable assignments, supplied by the user. \\
 \addlinespace
 PRISM \cite{prism} &
 DTMCs, CTMCs, MDPs, and PTAs, each optionally augmented with rewards. &
 PCTL (DTMC, MDP), CSL (CTMC), LTL, PCTL*, quantitative queries ($P{=}?$), and reward operators. &
-None built in. Nondeterminism in MDPs is resolved by minimizing or maximizing probabilities. &
-Matrix--vector multiplication, linear equation solving, Prob0/Prob1 precomputation, iterative solvers, value
-iteration, and BDD/MTBDD symbolic storage. &
+None built in; nondeterminism in MDPs is resolved by minimizing or maximizing probabilities. &
+Matrix--vector multiplication, linear equation solving, Prob0/Prob1 precomputation, iterative
+solvers, value iteration, and BDD/MTBDD symbolic storage. &
 $m$: DTMC; $\adv$: perturbing the transition matrix, as in \cite{oakley}, which uses PRISM as the inner probability engine. \\
 \addlinespace
 HyTech \cite{hytech} &
-Collections of hybrid automata composed as a product: nodes carry invariants and differential inclusions,
-transitions carry guards, resets, and synchronization labels. Linear dynamics: stopwatches, skewed clocks,
-bounded rates. &
-Temporal requirements stated as state-set reachability queries; the logic is not named in the paper. &
+Hybrid automata composed as a product: nodes carry invariants and differential inclusions,
+transitions carry guards, resets, and synchronization labels; linear dynamics (stopwatches, skewed
+clocks, bounded rates). &
+State-set reachability queries; the logic is not named in the paper. &
 None built in. &
-Symbolic model checking over polyhedra. Termination is not guaranteed. Also parametric analysis and
+Symbolic model checking over polyhedra (termination not guaranteed), plus parametric analysis and
 diagnostic error traces. &
 $m$: hybrid automaton; $\adv$: edits to rates, guards, and resets, supplied by the user. \\
 \addlinespace
 Alloy \cite{alloy} &
-Relational structures over a finite, user-chosen scope: fixed signatures and the relations (``fields'')
-declared over them. &
-Facts (constraints every valid instance must satisfy) and assertions (claimed consequences of the facts),
+Relational structures over a finite, user-chosen scope: fixed signatures and the relations
+(``fields'') declared over them. &
+Facts (constraints every valid instance must satisfy) and assertions (claimed consequences),
 both relational first-order formulas. &
-None built in. The natural $\adv$ is the universal relation over every instance satisfying the same facts,
-since Alloy's \texttt{check} command asks whether \emph{every} such instance also satisfies the assertion. &
-Translation of relational logic into boolean logic, solved by SAT, bounded by the declared scope (the
-``small scope hypothesis''): no counterexample within scope is not a proof none exists at a larger one. &
+None built in; the natural $\adv$ is the universal relation over every instance satisfying the
+same facts, since \texttt{check} asks whether \emph{every} such instance also satisfies the assertion. &
+Translation to boolean logic, solved by SAT, bounded by the declared scope (the ``small scope
+hypothesis''): no counterexample within scope is not a proof none exists at a larger one. &
 $m$: a relational instance; $\varphi$: an assertion; $\adv$: any other instance satisfying the same facts;
 attack: a counterexample instance violating the assertion. \\
 \addlinespace
 UPPAAL \cite{uppaal} &
-Networks of timed automata: locations with clock invariants, edges with guards and resets, synchronized
-over channels; every clock advances at a fixed rate. &
-A decidable fragment of TCTL, covering reachability and safety queries over the automata network. &
-None built in. The natural $\adv$ edits a guard or invariant threshold (a timing margin), since that is
-the only lever available to compromise a timed system's safety. &
-Symbolic reachability over zones (regions of clock-value space), explored on the fly rather than
-precomputed. &
+Networks of timed automata: locations with clock invariants, edges with guards and resets,
+synchronized over channels; every clock advances at a fixed rate. &
+A decidable fragment of TCTL: reachability and safety queries over the automata network. &
+None built in; the natural $\adv$ edits a guard or invariant threshold (a timing margin), the
+only lever available to compromise a timed system's safety. &
+Symbolic reachability over zones (regions of clock-value space), explored on the fly. &
 $m$: a network configuration (its guards/invariants); $\varphi$: a safety query (a location is never
 reached); $\adv$: a threshold edit; attack: an edit after which the forbidden location becomes reachable. \\
 \addlinespace
 Margrave \cite{margrave} &
-A policy as a mapping from requests to decisions: an ordered list of rules combined ``first applicable.'' &
-First-order queries over per-rule $R_{\mathit{matches}}$/$R_{\mathit{applies}}$ formulas, e.g.\ whether a
-given request is ever permitted. &
-None built in. The paper's own ``change impact'' analysis is defined over edits to the rule list, which is
-exactly the $\adv$ this instantiation uses: insert, delete, flip, or reorder a rule. &
-Compilation to first-order relational formulas, solved by the Kodkod/Alloy SAT backend over a bounded
-universe. &
+A policy as a mapping from requests to decisions: an ordered list of rules combined ``first
+applicable.'' &
+First-order queries over per-rule $R_{\mathit{matches}}$/$R_{\mathit{applies}}$ formulas, e.g.\
+whether a given request is ever permitted. &
+None built in; the paper's own ``change impact'' analysis -- over edits to the rule list -- is
+exactly the $\adv$ used here: insert, delete, flip, or reorder a rule. &
+Compilation to first-order relational formulas, solved by the Kodkod/Alloy SAT backend over a
+bounded universe. &
 $m$: an ordered rule list; $\varphi$: a fixed request must decide ``deny''; $\adv$: a single rule edit;
 attack: an edit after which the request decides ``permit.'' \\
 \bottomrule
@@ -532,10 +529,10 @@ Not an invariant in the paper; (our encoding) $\varphi_n = \neg\, GS_n$: no chai
 Horizon-limiting announcements (Def.~6): for every forbidden deviation, some continuation of $\alpha(t)$ makes the reports differ, so the attacker cannot be certain of going undetected. \\
 \addlinespace
 Adversarial capability relation $\adv\ \subseteq M \times M$ &
-$C \adv C'$ iff $C'$ has the same $S$, $s_0$, $L$ and a matrix $\mathbf{P}'$ with $\|\mathbf{P} - \mathbf{P}'\|_{\max} \leq \varepsilon$, changing only selected states (SS) or selected transitions (ST). The structure-preserving variants keep zero entries zero. &
-$\mathsf{P} \parallel Q \adv \mathsf{P} \parallel A$, where each $Q_i$ is replaced by a deterministic $A_i$ with the same interface and no atomic propositions. The recovery variant uses a finite DAG that ends in $Q_i$. &
-The attacker rewrites the code pointer and places controlled data in memory, then moves between states only through gadget transitions $g(s, s') = g_{\mathit{pre}}(s) \wedge g_{\mathit{post}}(s, s')$. NX is assumed on and CFI off. &
-A compromised robot $i$ changes only its own positions on an interval $(s, f)$ and falsifies its self-reports (Def.~3). It knows $\alpha(t)$ but not which other robots are compromised. \\
+$C \adv C'$: same $S$, $s_0$, $L$, and a matrix $\mathbf{P}'$ with $\|\mathbf{P} - \mathbf{P}'\|_{\max} \leq \varepsilon$, changing only selected states (SS) or transitions (ST); structure-preserving variants keep zero entries zero. &
+$\mathsf{P} \parallel Q \adv \mathsf{P} \parallel A$: each $Q_i$ replaced by a deterministic $A_i$ with the same interface and no atomic propositions; the recovery variant uses a finite DAG ending in $Q_i$. &
+Rewrites the code pointer and controlled memory data, moving between states only via gadget transitions $g(s, s') = g_{\mathit{pre}}(s) \wedge g_{\mathit{post}}(s, s')$ (NX on, CFI off). &
+A compromised robot $i$ changes only its own positions on $(s, f)$ and falsifies its self-reports (Def.~3), knowing $\alpha(t)$ but not which other robots are compromised. \\
 \addlinespace
 Attack $(m \adv m') \wedge (m' \nsat \varphi)$ &
 A perturbation $C'$ with $\Pr_{C'}(\psi) < \Pr_C(\psi) - \delta$. &
@@ -579,6 +576,7 @@ attack), computing Definition~9's severity automatically whenever a measure is s
 section describes that implementation and what mechanizing the framework does and does not buy us.
 
 \begin{definition}
+\leavevmode\\
 Given a logic $L = (M, \Phi, \models)$ and a threat model $T = (m, \varphi, \adv)$ with computable
 $\models$ and $\adv$, the \emph{realized-attack search problem} asks for some $m' \in C(m) =
 \{m' \in M \mid m \adv m'\}$ with $m' \nsat \varphi$ (or, dually, $m' \models (\varphi)^{d}$). This
@@ -644,15 +642,12 @@ Severity $\sigma = 1 - \mu(M')/\mu(M)$ & \texttt{severity(mu, m, m')} \\
 
 \begin{example}[Instantiated Model Classes]
 \label{ex:instances}
-Without modifying the search engine itself, the implementation has been instantiated against: all
-eight logics of Example~\ref{ex:logics} (run as executable checkers, not just tabulated); all four
-frameworks compared in Example~\ref{ex:comparison} (Oakley et al., von Hippel et al., Bailluet et al.,
-Wardega et al.), each reusing that paper's own model class and adversary; and all nine tools of
-Example~\ref{ex:checkers} (Tamarin, SPIN, ProVerif, nuXmv, PRISM, HyTech, Alloy, UPPAAL, Margrave),
-each reusing that tool's own documented semantics. Twenty-one independently verified instances
-across temporal, epistemic, probabilistic, hybrid, timed, relational, and Hoare-style logics, none
-of which required a change to \texttt{ModelType} or the search procedure -- only new
-\texttt{verifier}/\texttt{edit\_relation} pairs.
+\leavevmode\\
+Without modifying the search engine, the implementation has been instantiated against all eight
+logics of Example~\ref{ex:logics}, all four frameworks of Example~\ref{ex:comparison}, and all nine
+tools of Example~\ref{ex:checkers} -- twenty-one instances in total, each reusing that logic's,
+paper's, or tool's own model class and adversary, with no change to \texttt{ModelType} or the search
+procedure: only new \texttt{verifier}/\texttt{edit\_relation} pairs.
 \end{example}
 
 \begin{remark}
